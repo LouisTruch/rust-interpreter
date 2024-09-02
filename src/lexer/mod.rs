@@ -31,24 +31,65 @@ impl Lexer {
     }
 
     fn next_token(&mut self) -> Token {
-        let tok_type = match self.ch {
-            '=' => TokenType::ASSIGN,
-            ';' => TokenType::SEMICOLON,
-            '(' => TokenType::LPAREN,
-            ')' => TokenType::RPAREN,
-            ',' => TokenType::COMMA,
-            '+' => TokenType::PLUS,
-            '{' => TokenType::LBRACE,
-            '}' => TokenType::RBRACE,
-            '\0' => TokenType::EOF,
-            _ => TokenType::ILLEGAL,
+        self.skip_whitespace();
+
+        let tok = match self.ch {
+            '=' => Token::new(TokenType::ASSIGN, self.ch.to_string()),
+            ';' => Token::new(TokenType::SEMICOLON, self.ch.to_string()),
+            '(' => Token::new(TokenType::LPAREN, self.ch.to_string()),
+            ')' => Token::new(TokenType::RPAREN, self.ch.to_string()),
+            ',' => Token::new(TokenType::COMMA, self.ch.to_string()),
+            '+' => Token::new(TokenType::PLUS, self.ch.to_string()),
+            '{' => Token::new(TokenType::LBRACE, self.ch.to_string()),
+            '}' => Token::new(TokenType::RBRACE, self.ch.to_string()),
+            '\0' => Token::new(TokenType::EOF, self.ch.to_string()),
+            _ => {
+                if self.is_valid_identifier_char(self.ch) {
+                    let literal = self.read_identifier();
+                    let token_type = TokenType::lookup_ident(&literal);
+                    return Token::new(token_type, literal);
+                } else if self.ch.is_digit(10)  {
+                    let literal = self.read_number();
+                    return Token::new(TokenType::INT, literal);
+                } else {
+                    Token::new(TokenType::ILLEGAL, self.ch.to_string())
+                }
+            }
         };
-        let tok = Token::new(tok_type, self.ch.to_string());
 
         self.read_char();
         tok
     }
 
+    fn read_identifier(&mut self) -> String {
+        let pos = self.position;
+
+        while self.is_valid_identifier_char(self.ch) {
+            self.read_char();
+        }
+
+        self.input[pos..self.position].to_string()
+    }
+
+    fn read_number(&mut self) -> String {
+        let pos = self.position;
+
+        while self.ch.is_digit(10) {
+            self.read_char();
+        }
+
+        self.input[pos..self.position].to_string()
+    }
+
+    fn is_valid_identifier_char(&self, ch: char) -> bool {
+        ch.is_alphabetic() || ch == '_'
+    }
+
+    fn skip_whitespace(&mut self) {
+        while self.ch.is_whitespace() {
+            self.read_char();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -57,24 +98,62 @@ mod tests {
 
     #[test]
     fn test_next_token() {
-        let input = "+(){},;";
+        let input = "let five = 5;
+            let ten = 10;
+
+            let add = fn(x, y) {
+                x + y;
+            };
+
+            let result = add(five, ten);
+            ";
+
         let tests = vec![
-            Token { token_type: TokenType::PLUS, literal: "+".to_string() },
-            Token { token_type: TokenType::LPAREN, literal: "(".to_string() },
-            Token { token_type: TokenType::RPAREN, literal: ")".to_string() },
-            Token { token_type: TokenType::LBRACE, literal: "{".to_string() },
-            Token { token_type: TokenType::RBRACE, literal: "}".to_string() },
-            Token { token_type: TokenType::COMMA, literal: ",".to_string() },
-            Token { token_type: TokenType::SEMICOLON, literal: ";".to_string() },
-            Token { token_type: TokenType::EOF, literal: "\0".to_string() },
+            Token::new(TokenType::LET, "let".to_string()),
+            Token::new(TokenType::IDENT, "five".to_string()),
+            Token::new(TokenType::ASSIGN, "=".to_string()),
+            Token::new(TokenType::INT, "5".to_string()),
+            Token::new(TokenType::SEMICOLON, ";".to_string()),
+            Token::new(TokenType::LET, "let".to_string()),
+            Token::new(TokenType::IDENT, "ten".to_string()),
+            Token::new(TokenType::ASSIGN, "=".to_string()),
+            Token::new(TokenType::INT, "10".to_string()),
+            Token::new(TokenType::SEMICOLON, ";".to_string()),
+            Token::new(TokenType::LET, "let".to_string()),
+            Token::new(TokenType::IDENT, "add".to_string()),
+            Token::new(TokenType::ASSIGN, "=".to_string()),
+            Token::new(TokenType::FUNCTION, "fn".to_string()),
+            Token::new(TokenType::LPAREN, "(".to_string()),
+            Token::new(TokenType::IDENT, "x".to_string()),
+            Token::new(TokenType::COMMA, ",".to_string()),
+            Token::new(TokenType::IDENT, "y".to_string()),
+            Token::new(TokenType::RPAREN, ")".to_string()),
+            Token::new(TokenType::LBRACE, "{".to_string()),
+            Token::new(TokenType::IDENT, "x".to_string()),
+            Token::new(TokenType::PLUS, "+".to_string()),
+            Token::new(TokenType::IDENT, "y".to_string()),
+            Token::new(TokenType::SEMICOLON, ";".to_string()),
+            Token::new(TokenType::RBRACE, "}".to_string()),
+            Token::new(TokenType::SEMICOLON, ";".to_string()),
+            Token::new(TokenType::LET, "let".to_string()),
+            Token::new(TokenType::IDENT, "result".to_string()),
+            Token::new(TokenType::ASSIGN, "=".to_string()),
+            Token::new(TokenType::IDENT, "add".to_string()),
+            Token::new(TokenType::LPAREN, "(".to_string()),
+            Token::new(TokenType::IDENT, "five".to_string()),
+            Token::new(TokenType::COMMA, ",".to_string()),
+            Token::new(TokenType::IDENT, "ten".to_string()),
+            Token::new(TokenType::RPAREN, ")".to_string()),
+            Token::new(TokenType::SEMICOLON, ";".to_string()),
+            Token::new(TokenType::EOF, "\0".to_string()),
         ];
 
         let mut l = Lexer::new(input.to_string());
 
-        for tt in tests.iter() {
+        for t in tests.iter() {
             let tok = l.next_token();
-            assert_eq!(tok.token_type, tt.token_type);
-            assert_eq!(tok.literal, tt.literal);
+            assert_eq!(tok.token_type, t.token_type);
+            assert_eq!(tok.literal, t.literal);
         }
     }
 }

@@ -1,18 +1,35 @@
-#[derive(Debug)]
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
+
+#[derive(Debug, Default)]
 pub(crate) struct Token {
     pub(crate) token_type: TokenType,
     pub(crate) literal: String,
 }
 
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, TokenType> = {
+        let mut map = HashMap::new();
+        map.insert("fn", TokenType::FUNCTION);
+        map.insert("let", TokenType::LET);
+        map
+    };
+}
+
 impl Token {
     pub(crate) fn new(token_type: TokenType, literal: String) -> Self {
-        Token { token_type, literal }
+        Token {
+            token_type,
+            literal,
+        }
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) enum TokenType {
     // Special tokens
+    #[default]
     ILLEGAL,
     EOF,
 
@@ -36,6 +53,16 @@ pub(crate) enum TokenType {
     // Keywords
     FUNCTION,
     LET,
+}
+
+impl TokenType {
+    // Could be from::str ?
+    pub(crate) fn lookup_ident(ident: &str) -> TokenType {
+        match KEYWORDS.get(ident) {
+            Some(token) => token.clone(),
+            None => TokenType::IDENT,
+        }
+    }
 }
 
 impl std::fmt::Display for TokenType {
