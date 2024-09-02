@@ -1,6 +1,9 @@
-pub mod lexer;
-pub mod token;
+use repl::Repl;
+
+mod lexer;
+mod token;
+mod repl;
 
 fn main() {
-    println!("Hello, world!");
+    Repl::default().start();
 }

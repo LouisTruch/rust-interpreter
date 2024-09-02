@@ -13,6 +13,11 @@ lazy_static! {
         let mut map = HashMap::new();
         map.insert("fn", TokenType::FUNCTION);
         map.insert("let", TokenType::LET);
+        map.insert("true", TokenType::TRUE);
+        map.insert("false", TokenType::FALSE);
+        map.insert("if", TokenType::IF);
+        map.insert("else", TokenType::ELSE);
+        map.insert("return", TokenType::RETURN);
         map
     };
 }
@@ -40,6 +45,15 @@ pub(crate) enum TokenType {
     // Operators
     ASSIGN,
     PLUS,
+    MINUS,
+    BANG,
+    ASTERISK,
+    SLASH,
+
+    EQ,
+    NOTEQ,
+    LT,
+    GT,
 
     // Delimiters
     COMMA,
@@ -53,6 +67,11 @@ pub(crate) enum TokenType {
     // Keywords
     FUNCTION,
     LET,
+    TRUE,
+    FALSE,
+    IF,
+    ELSE,
+    RETURN,
 }
 
 impl TokenType {
@@ -73,15 +92,28 @@ impl std::fmt::Display for TokenType {
             TokenType::IDENT => "IDENT",
             TokenType::INT => "INT",
             TokenType::ASSIGN => "ASSIGN",
-            TokenType::PLUS => "PLUS",
-            TokenType::COMMA => "COMMA",
-            TokenType::SEMICOLON => "SEMICOLON",
+            TokenType::PLUS => "+",
+            TokenType::MINUS => "-",
+            TokenType::BANG => "!",
+            TokenType::ASTERISK => "*",
+            TokenType::SLASH => "/",
+            TokenType::EQ => "==",
+            TokenType::NOTEQ => "!=",
+            TokenType::LT => "<",
+            TokenType::GT => ">",
+            TokenType::COMMA => ",",
+            TokenType::SEMICOLON => ";",
             TokenType::LPAREN => "(",
             TokenType::RPAREN => ")",
             TokenType::LBRACE => "{",
             TokenType::RBRACE => "}",
             TokenType::FUNCTION => "FUNCTION",
             TokenType::LET => "LET",
+            TokenType::TRUE => "TRUE",
+            TokenType::FALSE => "FALSE",
+            TokenType::IF => "IF",
+            TokenType::ELSE => "ELSE",
+            TokenType::RETURN => "RETURN",
         };
         write!(f, "{}", token)
     }
