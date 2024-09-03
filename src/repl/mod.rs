@@ -1,6 +1,5 @@
+use crate::{lexer::Lexer, token::Token};
 use std::io::{self, Write};
-
-use crate::lexer::Lexer;
 
 #[derive(Default)]
 pub(crate) struct Repl();
@@ -26,7 +25,7 @@ impl Repl {
 
             loop {
                 let tok = l.next_token();
-                if tok.token_type == crate::token::TokenType::EOF {
+                if tok == Token::Eof {
                     break;
                 }
                 println!("{:?}", tok);

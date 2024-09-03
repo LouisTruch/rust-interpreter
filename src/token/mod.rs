@@ -1,119 +1,93 @@
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use lazy_static::lazy_static;
+// lazy_static! {
+//     static ref KEYWORDS: HashMap<&'static str, TokenType> = {
+//         let mut map = HashMap::new();
+//         map.insert("fn", TokenType::FUNCTION);
+//         map.insert("let", TokenType::LET);
+//         map.insert("true", TokenType::TRUE);
+//         map.insert("false", TokenType::FALSE);
+//         map.insert("if", TokenType::IF);
+//         map.insert("else", TokenType::ELSE);
+//         map.insert("return", TokenType::RETURN);
+//         map
+//     };
+// }
 
-#[derive(Debug, Default)]
-pub(crate) struct Token {
-    pub(crate) token_type: TokenType,
-    pub(crate) literal: String,
-}
-
-lazy_static! {
-    static ref KEYWORDS: HashMap<&'static str, TokenType> = {
-        let mut map = HashMap::new();
-        map.insert("fn", TokenType::FUNCTION);
-        map.insert("let", TokenType::LET);
-        map.insert("true", TokenType::TRUE);
-        map.insert("false", TokenType::FALSE);
-        map.insert("if", TokenType::IF);
-        map.insert("else", TokenType::ELSE);
-        map.insert("return", TokenType::RETURN);
-        map
-    };
-}
-
-impl Token {
-    pub(crate) fn new(token_type: TokenType, literal: String) -> Self {
-        Token {
-            token_type,
-            literal,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) enum TokenType {
+#[derive(Clone, Default, Debug, PartialEq)]
+pub(crate) enum Token {
     // Special tokens
+    Illegal(String),
     #[default]
-    ILLEGAL,
-    EOF,
+    Eof,
 
     // Identifiers + literals
-    IDENT,
-    INT,
+    Ident(String),
+    Int(i64),
 
     // Operators
-    ASSIGN,
-    PLUS,
-    MINUS,
-    BANG,
-    ASTERISK,
-    SLASH,
+    Assign,
+    Plus,
+    Minus,
+    Bang,
+    Asterisk,
+    Slash,
 
-    EQ,
-    NOTEQ,
-    LT,
-    GT,
+    Eq,
+    NotEq,
+    LessThan,
+    GreaterThan,
 
     // Delimiters
-    COMMA,
-    SEMICOLON,
+    Comma,
+    Semicolon,
 
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
 
     // Keywords
-    FUNCTION,
-    LET,
-    TRUE,
-    FALSE,
-    IF,
-    ELSE,
-    RETURN,
+    Function,
+    Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
 }
 
-impl TokenType {
-    // Could be from::str ?
-    pub(crate) fn lookup_ident(ident: &str) -> TokenType {
-        match KEYWORDS.get(ident) {
-            Some(token) => token.clone(),
-            None => TokenType::IDENT,
-        }
-    }
-}
-
-impl std::fmt::Display for TokenType {
+impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let token = match self {
-            TokenType::ILLEGAL => "ILLEGAL",
-            TokenType::EOF => "EOF",
-            TokenType::IDENT => "IDENT",
-            TokenType::INT => "INT",
-            TokenType::ASSIGN => "ASSIGN",
-            TokenType::PLUS => "+",
-            TokenType::MINUS => "-",
-            TokenType::BANG => "!",
-            TokenType::ASTERISK => "*",
-            TokenType::SLASH => "/",
-            TokenType::EQ => "==",
-            TokenType::NOTEQ => "!=",
-            TokenType::LT => "<",
-            TokenType::GT => ">",
-            TokenType::COMMA => ",",
-            TokenType::SEMICOLON => ";",
-            TokenType::LPAREN => "(",
-            TokenType::RPAREN => ")",
-            TokenType::LBRACE => "{",
-            TokenType::RBRACE => "}",
-            TokenType::FUNCTION => "FUNCTION",
-            TokenType::LET => "LET",
-            TokenType::TRUE => "TRUE",
-            TokenType::FALSE => "FALSE",
-            TokenType::IF => "IF",
-            TokenType::ELSE => "ELSE",
-            TokenType::RETURN => "RETURN",
+            Token::Illegal(_str) => "ILLEGAL",
+            Token::Eof => "EOF",
+            Token::Ident(str) => return write!(f, "{str}"),
+            Token::Int(nb) => return write!(f, "{nb}"),
+            Token::Assign => "ASSIGN",
+            Token::Plus => "+",
+            Token::Minus => "-",
+            Token::Bang => "!",
+            Token::Asterisk => "*",
+            Token::Slash => "/",
+            Token::Eq => "==",
+            Token::NotEq => "!=",
+            Token::LessThan => "<",
+            Token::GreaterThan => ">",
+            Token::Comma => ",",
+            Token::Semicolon => ";",
+            Token::LParen => "(",
+            Token::RParen => ")",
+            Token::LBrace => "{",
+            Token::RBrace => "}",
+            Token::Function => "FUNCTION",
+            Token::Let => "LET",
+            Token::True => "TRUE",
+            Token::False => "FALSE",
+            Token::If => "IF",
+            Token::Else => "ELSE",
+            Token::Return => "RETURN",
         };
         write!(f, "{}", token)
     }
