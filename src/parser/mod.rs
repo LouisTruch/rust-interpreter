@@ -20,6 +20,7 @@ pub(super) enum ParserError {
     UnexpectedToken { expected: Token, got: Token },
     InvalidPrefixOperator { operator: Token },
     InvalidInfixOperator { operator: Token },
+    MissRightParenthesis { operator: Token },
     UnhandledError,
 }
 
@@ -34,6 +35,9 @@ impl std::fmt::Display for ParserError {
             }
             ParserError::InvalidInfixOperator { operator } => {
                 write!(f, "Invalid infix operator {:?}", operator)
+            }
+            ParserError::MissRightParenthesis { operator } => {
+                write!(f, "Missing Closing parenthesis, got {} instead", operator)
             }
             ParserError::UnhandledError => write!(f, "Unhandled error"),
         }
@@ -130,6 +134,7 @@ impl Parser {
             Token::Int(nb) => self.parse_expr_integer(nb),
             Token::Bang | Token::Minus => self.parse_expr_prefix()?,
             Token::True | Token::False => self.parse_expr_boolean(),
+            Token::LParen => self.parse_expr_grouped()?,
             _ => return Err(ParserError::UnhandledError),
         };
 
@@ -193,6 +198,20 @@ impl Parser {
 
     fn parse_expr_boolean(&mut self) -> Expression {
         Expression::Bool(self.curr_token_is(&Token::True))
+    }
+
+    fn parse_expr_grouped(&mut self) -> Result<Expression, ParserError> {
+        self.next_token();
+
+        let expr = self.parse_expression(Precedence::Lowest)?;
+
+        let _ = self
+            .expect_peek(Token::RParen)
+            .map_err(|_| ParserError::MissRightParenthesis {
+                operator: self.curr_token.clone(),
+            })?;
+
+        Ok(expr)
     }
 
     fn curr_token_is(&self, t: &Token) -> bool {

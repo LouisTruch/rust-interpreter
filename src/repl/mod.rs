@@ -2,7 +2,7 @@ use crate::{lexer::Lexer, token::Token};
 use std::io::{self, Write};
 
 #[derive(Default)]
-pub struct Repl();
+pub struct Repl;
 
 impl Repl {
     pub fn start(&self) {
