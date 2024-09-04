@@ -1,10 +1,4 @@
-use repl::Repl;
-
-mod ast;
-mod lexer;
-mod parser;
-mod repl;
-mod token;
+use rust_interpreter::Repl;
 
 fn main() {
     Repl::default().start();

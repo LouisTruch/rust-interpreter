@@ -2,10 +2,10 @@ use crate::{lexer::Lexer, token::Token};
 use std::io::{self, Write};
 
 #[derive(Default)]
-pub(crate) struct Repl();
+pub struct Repl();
 
 impl Repl {
-    pub(crate) fn start(&self) {
+    pub fn start(&self) {
         loop {
             print!(">> ");
             io::stdout().flush().expect("Failed to flush stdout");
