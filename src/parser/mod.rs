@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     ast::{Expression, Program, Statement},
     lexer::Lexer,
@@ -47,13 +49,13 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Option<Statement> {
         match self.curr_token {
-            Token::Let => self.parse_let(),
-            Token::Return => self.parse_return(),
-            _ => None,
+            Token::Let => self.parse_let_statement(),
+            Token::Return => self.parse_return_statement(),
+            _ => self.parse_expression_statement(),
         }
     }
 
-    fn parse_let(&mut self) -> Option<Statement> {
+    fn parse_let_statement(&mut self) -> Option<Statement> {
         // First thing after the let keyword should be an identifier
         let Token::Ident(name) = self.peek_token.clone() else {
             return None;
@@ -75,7 +77,7 @@ impl Parser {
         })
     }
 
-    fn parse_return(&mut self) -> Option<Statement> {
+    fn parse_return_statement(&mut self) -> Option<Statement> {
         self.next_token();
 
         while !self.curr_token_is(&Token::Semicolon) && !self.curr_token_is(&Token::Eof) {
@@ -83,6 +85,36 @@ impl Parser {
         }
 
         Some(Statement::Return(Expression::default()))
+    }
+
+    fn parse_expression_statement(&mut self) -> Option<Statement> {
+        let expr = self.parse_expression(Precedence::Lowest);
+
+        if self.peek_token_is(&Token::Semicolon) {
+            self.next_token();
+        }
+
+        Some(Statement::Expression(expr.unwrap_or(Expression::default())))
+    }
+
+    fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
+        // println!("Curr token {:?}", self.curr_token);
+        let left_expr = match self.curr_token.clone() {
+            Token::Ident(str) => self.parse_identifier(&str),
+            Token::Int(nb) => self.parse_integer(nb),
+            _ => Expression::default(),
+        };
+        Some(left_expr)
+    }
+
+    fn parse_identifier(&mut self, str: &str) -> Expression {
+        self.next_token();
+        Expression::Identifier(str.to_string())
+    }
+
+    fn parse_integer(&mut self, nb: i64) -> Expression {
+        self.next_token();
+        Expression::Int(nb)
     }
 
     fn curr_token_is(&self, t: &Token) -> bool {
@@ -111,6 +143,16 @@ impl Parser {
             t, self.curr_token
         ))
     }
+}
+
+pub(crate) enum Precedence {
+    Lowest = 1,      // Default
+    Equals = 2,      // ==
+    LessGreater = 3, // > or <
+    Sum = 4,         // +
+    Product = 5,     // *
+    Prefix = 6,      // -x or !x
+    Call = 7,        // fn(x)
 }
 
 #[cfg(test)]
@@ -174,6 +216,52 @@ mod tests {
 
         let program = program.unwrap();
         assert_eq!(program.statements.len(), 3);
+    }
+
+    #[test]
+    fn identifier_expression() {
+        let input = "foobar;";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parser_errors(parser);
+        assert!(program.is_ok());
+
+        let program = program.unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        let stmt = &program.statements[0];
+        match stmt {
+            Statement::Expression(expr) => {
+                assert_eq!(expr, &Expression::Identifier("foobar".to_string()));
+            }
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn int_expression() {
+        let input = "5;";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parser_errors(parser);
+        assert!(program.is_ok());
+
+        let program = program.unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        let stmt = &program.statements[0];
+        match stmt {
+            Statement::Expression(expr) => {
+                assert_eq!(expr, &Expression::Int(5));
+            }
+            _ => assert!(false),
+        }
     }
 
     fn check_parser_errors(parser: Parser) {

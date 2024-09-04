@@ -1,21 +1,4 @@
-use lazy_static::lazy_static;
-use std::collections::HashMap;
-
-// lazy_static! {
-//     static ref KEYWORDS: HashMap<&'static str, TokenType> = {
-//         let mut map = HashMap::new();
-//         map.insert("fn", TokenType::FUNCTION);
-//         map.insert("let", TokenType::LET);
-//         map.insert("true", TokenType::TRUE);
-//         map.insert("false", TokenType::FALSE);
-//         map.insert("if", TokenType::IF);
-//         map.insert("else", TokenType::ELSE);
-//         map.insert("return", TokenType::RETURN);
-//         map
-//     };
-// }
-
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum Token {
     // Special tokens
     Illegal(String),
