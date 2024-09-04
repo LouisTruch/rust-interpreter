@@ -198,6 +198,15 @@ fn operator_precedence() {
             "3 + 4 * 5 == 3 * 1 + 4 * 5",
             "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
         ),
+        ("true", "true"),
+        ("false", "false"),
+        ("3 > 5 == false", "((3 > 5) == false)"),
+        ("3 < 5 == true", "((3 < 5) == true)"),
+        // ("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+        // ("(5 + 5) * 2", "((5 + 5) * 2)"),
+        // ("2 / (5 + 5)", "(2 / (5 + 5))"),
+        // ("-(5 + 5)", "(-(5 + 5))"),
+        // ("!(true == true)", "(!(true == true))"),
     ];
 
     for (input, expected) in tests {
@@ -210,6 +219,35 @@ fn operator_precedence() {
 
         let program = program.unwrap();
         assert_eq!(program.to_string(), expected);
+    }
+}
+
+#[test]
+fn test_bool_expression() {
+    let input = "true; false;";
+
+    let lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program();
+    check_parser_errors(parser);
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
+    assert_eq!(program.statements.len(), 2);
+
+    match &program.statements[0] {
+        Statement::Expression(expr) => {
+            assert_eq!(expr, &Expression::Bool(true));
+        }
+        _ => assert!(false),
+    }
+
+    match &program.statements[1] {
+        Statement::Expression(expr) => {
+            assert_eq!(expr, &Expression::Bool(false));
+        }
+        _ => assert!(false),
     }
 }
 
@@ -228,6 +266,7 @@ fn test_literal_expression(expr: Expression) {
     match expr {
         Expression::Int(value) => test_integer_literal(expr, value),
         Expression::Identifier(ref value) => test_identifier(expr.clone(), &(value.clone())),
+        Expression::Bool(value) => test_bool_literal(expr, value),
         _ => assert!(false, "Expression is not a literal"),
     }
 }
@@ -255,6 +294,19 @@ fn test_identifier(expr: Expression, value: &str) {
             );
         }
         _ => assert!(false, "Expression is not an identifier"),
+    }
+}
+
+fn test_bool_literal(expr: Expression, value: bool) {
+    match expr {
+        Expression::Bool(val) => {
+            assert_eq!(
+                val, value,
+                "Bool Literal has value {}, instead of {}",
+                val, value
+            );
+        }
+        _ => assert!(false, "Expression is not a bool literal"),
     }
 }
 

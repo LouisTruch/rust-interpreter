@@ -129,6 +129,7 @@ impl Parser {
             Token::Ident(str) => self.parse_expr_identifier(&str),
             Token::Int(nb) => self.parse_expr_integer(nb),
             Token::Bang | Token::Minus => self.parse_expr_prefix()?,
+            Token::True | Token::False => self.parse_expr_boolean(),
             _ => return Err(ParserError::UnhandledError),
         };
 
@@ -188,6 +189,10 @@ impl Parser {
             operator,
             right: Box::new(right),
         })
+    }
+
+    fn parse_expr_boolean(&mut self) -> Expression {
+        Expression::Bool(self.curr_token_is(&Token::True))
     }
 
     fn curr_token_is(&self, t: &Token) -> bool {

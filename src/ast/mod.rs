@@ -58,6 +58,7 @@ pub enum Expression {
         operator: InfixOperator,
         right: Box<Expression>,
     },
+    Bool(bool),
 }
 
 impl std::fmt::Display for Expression {
@@ -72,6 +73,7 @@ impl std::fmt::Display for Expression {
                 operator,
                 right,
             } => write!(f, "({left} {operator} {right})"),
+            Expression::Bool(value) => write!(f, "{value}"),
         }
     }
 }
