@@ -18,7 +18,7 @@ impl std::fmt::Display for Program {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let { name: String, value: Expression },
     Return(Expression),
@@ -33,11 +33,10 @@ impl std::fmt::Display for Statement {
             Statement::Return(value) => write!(f, "return {value};"),
             Statement::Expression(value) => write!(f, "{value}"),
             Statement::Block(statements) => {
-                let mut out = String::new();
-                for stmt in statements {
-                    out.push_str(&stmt.to_string());
+                for statement in statements {
+                    write!(f, "{statement}")?;
                 }
-                write!(f, "{out}")
+                Ok(())
             }
         }
     }
@@ -46,7 +45,7 @@ impl std::fmt::Display for Statement {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum Expression {
     #[default]
-    A,
+    None,
     Identifier(String),
     Int(i64),
     Prefix {
@@ -59,12 +58,21 @@ pub enum Expression {
         right: Box<Expression>,
     },
     Bool(bool),
+    If {
+        condition: Box<Expression>,
+        consequence: Vec<Statement>,
+        alternative: Option<Vec<Statement>>,
+    },
+    Function {
+        parameters: Vec<Expression>,
+        body: Vec<Statement>,
+    },
 }
 
 impl std::fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::A => write!(f, "A"),
+            Expression::None => write!(f, "A"),
             Expression::Identifier(name) => write!(f, "{name}"),
             Expression::Int(value) => write!(f, "{value}"),
             Expression::Prefix { operator, right } => write!(f, "({operator}{right})"),
@@ -74,6 +82,42 @@ impl std::fmt::Display for Expression {
                 right,
             } => write!(f, "({left} {operator} {right})"),
             Expression::Bool(value) => write!(f, "{value}"),
+            Expression::If {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                write!(f, "if {condition}")?;
+
+                for statement in consequence {
+                    write!(f, "{statement}")?;
+                }
+
+                if let Some(alternative) = alternative {
+                    write!(f, "else ")?;
+
+                    for statement in alternative {
+                        write!(f, "{statement}")?;
+                    }
+                }
+                Ok(())
+            }
+            Expression::Function { parameters, body } => {
+                write!(f, "{}(", Token::Function.to_string())?;
+
+                for (i, param) in parameters.iter().enumerate() {
+                    write!(f, "{}", param)?;
+                    if i < parameters.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, ")")?;
+
+                for statement in body {
+                    write!(f, "{statement}")?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -179,7 +223,7 @@ mod tests {
                     name: "myVar".to_string(),
                     value: Expression::Identifier("anotherVar".to_string()),
                 },
-                Statement::Return(Expression::A),
+                Statement::Return(Expression::None),
             ],
         };
 

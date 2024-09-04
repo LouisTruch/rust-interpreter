@@ -56,8 +56,6 @@ fn return_statements() {
 
     let program = program.unwrap();
     assert_eq!(program.statements.len(), 3);
-
-    // assert_eq!(program.statements[0], Statement::Return(Expression::Int(5)));
 }
 
 #[test]
@@ -223,7 +221,7 @@ fn operator_precedence() {
 }
 
 #[test]
-fn test_bool_expression() {
+fn bool_expression() {
     let input = "true; false;";
 
     let lexer = Lexer::new(input.to_string());
@@ -248,6 +246,150 @@ fn test_bool_expression() {
             assert_eq!(expr, &Expression::Bool(false));
         }
         _ => assert!(false),
+    }
+}
+
+#[test]
+fn if_expression() {
+    let input = "if (x < y) { x }";
+
+    let lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program();
+    check_parser_errors(parser);
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Statement::Expression(expr) => {
+            assert_eq!(
+                expr,
+                &Expression::If {
+                    condition: Box::new(Expression::Infix {
+                        left: Box::new(Expression::Identifier("x".to_string())),
+                        operator: InfixOperator::LessThan,
+                        right: Box::new(Expression::Identifier("y".to_string())),
+                    }),
+                    consequence: vec![Statement::Expression(Expression::Identifier(
+                        "x".to_string()
+                    ))],
+                    alternative: None,
+                }
+            );
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn if_else_expression() {
+    let input = "if (x < y) { x } else { y }";
+
+    let lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program();
+    check_parser_errors(parser);
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Statement::Expression(expr) => {
+            assert_eq!(
+                expr,
+                &Expression::If {
+                    condition: Box::new(Expression::Infix {
+                        left: Box::new(Expression::Identifier("x".to_string())),
+                        operator: InfixOperator::LessThan,
+                        right: Box::new(Expression::Identifier("y".to_string())),
+                    }),
+                    consequence: vec![Statement::Expression(Expression::Identifier(
+                        "x".to_string()
+                    ))],
+                    alternative: Some(vec![Statement::Expression(Expression::Identifier(
+                        "y".to_string()
+                    ))]),
+                }
+            );
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn function_expression() {
+    let input = "fn(x, y) { x + y; }";
+
+    let lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program();
+    check_parser_errors(parser);
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Statement::Expression(expr) => {
+            assert_eq!(
+                expr,
+                &Expression::Function {
+                    parameters: vec![
+                        Expression::Identifier("x".to_string()),
+                        Expression::Identifier("y".to_string())
+                    ],
+                    body: vec![Statement::Expression(Expression::Infix {
+                        left: Box::new(Expression::Identifier("x".to_string())),
+                        operator: InfixOperator::Plus,
+                        right: Box::new(Expression::Identifier("y".to_string())),
+                    })],
+                }
+            );
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn function_parameters() {
+    let tests = vec![
+        ("fn() {};", vec![]),
+        ("fn(x) {};", vec!["x"]),
+        ("fn(x, y, z) {};", vec!["x", "y", "z"]),
+    ];
+
+    for (input, expected) in tests {
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parser_errors(parser);
+        assert!(program.is_ok());
+
+        let program = program.unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        match &program.statements[0] {
+            Statement::Expression(expr) => {
+                assert_eq!(
+                    expr,
+                    &Expression::Function {
+                        parameters: expected
+                            .iter()
+                            .map(|str| Expression::Identifier(str.to_string()))
+                            .collect(),
+                        body: vec![],
+                    }
+                );
+            }
+            _ => assert!(false),
+        }
     }
 }
 
