@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    ast::{Expression, Program, Statement},
+    ast::{Expression, PrefixOperator, Program, Statement},
     lexer::Lexer,
     token::Token,
 };
@@ -98,23 +98,38 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
-        // println!("Curr token {:?}", self.curr_token);
         let left_expr = match self.curr_token.clone() {
             Token::Ident(str) => self.parse_identifier(&str),
             Token::Int(nb) => self.parse_integer(nb),
+            Token::Bang | Token::Minus => self.parse_prefix()?,
             _ => Expression::default(),
         };
         Some(left_expr)
     }
 
     fn parse_identifier(&mut self, str: &str) -> Expression {
-        self.next_token();
         Expression::Identifier(str.to_string())
     }
 
     fn parse_integer(&mut self, nb: i64) -> Expression {
-        self.next_token();
         Expression::Int(nb)
+    }
+
+    fn parse_prefix(&mut self) -> Option<Expression> {
+        let Ok(prefix) = PrefixOperator::try_from(&self.curr_token) else {
+            self.errors
+                .push(format!("Prefix operator {:?} not handled", self.curr_token));
+            return None;
+        };
+
+        self.next_token();
+
+        let expr = self.parse_expression(Precedence::Prefix).unwrap();
+
+        Some(Expression::Prefix {
+            operator: prefix,
+            right: Box::new(expr),
+        })
     }
 
     fn curr_token_is(&self, t: &Token) -> bool {
@@ -158,7 +173,7 @@ pub(crate) enum Precedence {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::Lexer;
+    use crate::{ast::PrefixOperator, lexer::Lexer};
 
     #[test]
     fn let_statements() {
@@ -259,6 +274,49 @@ mod tests {
         match stmt {
             Statement::Expression(expr) => {
                 assert_eq!(expr, &Expression::Int(5));
+            }
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn prefix_expression() {
+        let input = "!5; -15;";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parser_errors(parser);
+        assert!(program.is_ok());
+
+        let program = program.unwrap();
+        assert_eq!(program.statements.len(), 2);
+
+        let stmt = &program.statements[0];
+        match stmt {
+            Statement::Expression(expr) => {
+                assert_eq!(
+                    expr,
+                    &Expression::Prefix {
+                        operator: PrefixOperator::Bang,
+                        right: Box::new(Expression::Int(5)),
+                    }
+                );
+            }
+            _ => assert!(false),
+        }
+
+        let stmt = &program.statements[1];
+        match stmt {
+            Statement::Expression(expr) => {
+                assert_eq!(
+                    expr,
+                    &Expression::Prefix {
+                        operator: PrefixOperator::Minus,
+                        right: Box::new(Expression::Int(15)),
+                    }
+                );
             }
             _ => assert!(false),
         }

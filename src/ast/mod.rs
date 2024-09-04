@@ -1,3 +1,5 @@
+use crate::token::Token;
+
 #[derive(Default)]
 pub struct Program {
     pub(crate) statements: Vec<Statement>,
@@ -44,6 +46,10 @@ pub enum Expression {
     A,
     Identifier(String),
     Int(i64),
+    Prefix {
+        operator: PrefixOperator,
+        right: Box<Expression>,
+    },
 }
 
 impl std::fmt::Display for Expression {
@@ -52,6 +58,34 @@ impl std::fmt::Display for Expression {
             Expression::A => write!(f, "A"),
             Expression::Identifier(name) => write!(f, "{name}"),
             Expression::Int(value) => write!(f, "{value}"),
+            Expression::Prefix { operator, right } => write!(f, "{operator}{right}"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PrefixOperator {
+    Bang,
+    Minus,
+}
+
+impl std::fmt::Display for PrefixOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrefixOperator::Bang => write!(f, "!"),
+            PrefixOperator::Minus => write!(f, "-"),
+        }
+    }
+}
+
+impl TryFrom<&Token> for PrefixOperator {
+    type Error = ();
+
+    fn try_from(value: &Token) -> Result<Self, Self::Error> {
+        match value {
+            Token::Bang => Ok(Self::Bang),
+            Token::Minus => Ok(Self::Minus),
+            _ => Err(()),
         }
     }
 }
