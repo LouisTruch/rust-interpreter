@@ -97,24 +97,30 @@ impl Parser {
         self.next_token();
         let _ = self.expect_peek(Token::Assign)?;
 
-        while !self.curr_token_is(&Token::Semicolon) && !self.curr_token_is(&Token::Eof) {
+        // Then we parse the expression
+        self.next_token();
+        let value = self.parse_expression(Precedence::Lowest)?;
+
+        // Then we might have a semicolon (but not necessarily)
+        if self.peek_token_is(&Token::Semicolon) {
             self.next_token();
         }
 
-        Ok(Statement::Let {
-            name,
-            value: Expression::default(),
-        })
+        Ok(Statement::Let { name, value })
     }
 
     fn parse_statement_ret(&mut self) -> Result<Statement, ParserError> {
+        // Skip the return keyword
         self.next_token();
 
-        while !self.curr_token_is(&Token::Semicolon) && !self.curr_token_is(&Token::Eof) {
+        let expr = self.parse_expression(Precedence::Lowest)?;
+
+        // Then we might have a semicolon (but not necessarily)
+        if self.peek_token_is(&Token::Semicolon) {
             self.next_token();
         }
 
-        Ok(Statement::Return(Expression::default()))
+        Ok(Statement::Return(expr))
     }
 
     fn parse_statement_expr(&mut self) -> Result<Statement, ParserError> {

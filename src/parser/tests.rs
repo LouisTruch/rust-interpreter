@@ -20,7 +20,7 @@ fn let_statements() {
         program.statements[0],
         Statement::Let {
             name: "x".to_string(),
-            value: Expression::default(),
+            value: Expression::Int(5),
         }
     );
 
@@ -28,7 +28,7 @@ fn let_statements() {
         program.statements[1],
         Statement::Let {
             name: "y".to_string(),
-            value: Expression::default(),
+            value: Expression::Int(10),
         }
     );
 
@@ -36,7 +36,7 @@ fn let_statements() {
         program.statements[2],
         Statement::Let {
             name: "foobar".to_string(),
-            value: Expression::default(),
+            value: Expression::Int(838383),
         }
     );
 }
@@ -56,6 +56,18 @@ fn return_statements() {
 
     let program = program.unwrap();
     assert_eq!(program.statements.len(), 3);
+
+    assert_eq!(program.statements[0], Statement::Return(Expression::Int(5)));
+
+    assert_eq!(
+        program.statements[1],
+        Statement::Return(Expression::Int(10))
+    );
+
+    assert_eq!(
+        program.statements[2],
+        Statement::Return(Expression::Int(993322))
+    );
 }
 
 #[test]
