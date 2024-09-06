@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-struct Parser {
+pub(crate) struct Parser {
     lexer: Lexer,
     curr_token: Token,
     peek_token: Token,
@@ -45,7 +45,7 @@ impl std::fmt::Display for ParserError {
 }
 
 impl Parser {
-    fn new(mut lexer: Lexer) -> Self {
+    pub(crate) fn new(mut lexer: Lexer) -> Self {
         let curr_token = lexer.next_token();
         let peek_token = lexer.next_token();
 
@@ -62,7 +62,7 @@ impl Parser {
         self.peek_token = self.lexer.next_token();
     }
 
-    fn parse_program(&mut self) -> Result<Program, ()> {
+    pub(crate) fn parse_program(&mut self) -> Result<Program, ()> {
         let mut program = Program { statements: vec![] };
 
         while self.curr_token != Token::Eof {
