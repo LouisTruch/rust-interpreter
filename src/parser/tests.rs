@@ -205,6 +205,15 @@ fn operator_precedence() {
         ("2 / (5 + 5)", "(2 / (5 + 5))"),
         ("-(5 + 5)", "(-(5 + 5))"),
         ("!(true == true)", "(!(true == true))"),
+        ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+        (
+            "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+            "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+        ),
+        (
+            "add(a + b + c * d / f + g)",
+            "add((((a + b) + ((c * d) / f)) + g))",
+        ),
     ];
 
     for (input, expected) in tests {
@@ -385,6 +394,94 @@ fn function_parameters() {
                             .map(|str| Expression::Identifier(str.to_string()))
                             .collect(),
                         body: vec![],
+                    }
+                );
+            }
+            _ => assert!(false),
+        }
+    }
+}
+
+#[test]
+fn function_call() {
+    let input = "add(1, 2 * 3, 4 + 5);";
+
+    let lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program();
+    check_parser_errors(parser);
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Statement::Expression(expr) => {
+            assert_eq!(
+                expr,
+                &Expression::FunctionCall {
+                    function: Box::new(Expression::Identifier("add".to_string())),
+                    arguments: vec![
+                        Expression::Int(1),
+                        Expression::Infix {
+                            left: Box::new(Expression::Int(2)),
+                            operator: InfixOperator::Mult,
+                            right: Box::new(Expression::Int(3)),
+                        },
+                        Expression::Infix {
+                            left: Box::new(Expression::Int(4)),
+                            operator: InfixOperator::Plus,
+                            right: Box::new(Expression::Int(5)),
+                        },
+                    ],
+                }
+            );
+        }
+        _ => assert!(false),
+    }
+}
+
+fn function_call_arguments() {
+    let tests = vec![
+        ("add();", vec![]),
+        ("add(1);", vec![Expression::Int(1)]),
+        (
+            "add(1, 2 * 3, 4 + 5);",
+            vec![
+                Expression::Int(1),
+                Expression::Infix {
+                    left: Box::new(Expression::Int(2)),
+                    operator: InfixOperator::Mult,
+                    right: Box::new(Expression::Int(3)),
+                },
+                Expression::Infix {
+                    left: Box::new(Expression::Int(4)),
+                    operator: InfixOperator::Plus,
+                    right: Box::new(Expression::Int(5)),
+                },
+            ],
+        ),
+    ];
+
+    for (input, expected) in tests {
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parser_errors(parser);
+        assert!(program.is_ok());
+
+        let program = program.unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        match &program.statements[0] {
+            Statement::Expression(expr) => {
+                assert_eq!(
+                    expr,
+                    &Expression::FunctionCall {
+                        function: Box::new(Expression::Identifier("add".to_string())),
+                        arguments: expected,
                     }
                 );
             }

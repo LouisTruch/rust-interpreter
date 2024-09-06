@@ -48,10 +48,12 @@ pub enum Expression {
     None,
     Identifier(String),
     Int(i64),
+    // -x
     Prefix {
         operator: PrefixOperator,
         right: Box<Expression>,
     },
+    // x + x
     Infix {
         left: Box<Expression>,
         operator: InfixOperator,
@@ -66,6 +68,11 @@ pub enum Expression {
     Function {
         parameters: Vec<Expression>,
         body: Vec<Statement>,
+    },
+    // Function call
+    FunctionCall {
+        function: Box<Expression>,
+        arguments: Vec<Expression>,
     },
 }
 
@@ -117,6 +124,20 @@ impl std::fmt::Display for Expression {
                     write!(f, "{statement}")?;
                 }
                 Ok(())
+            }
+            Expression::FunctionCall {
+                function,
+                arguments,
+            } => {
+                write!(f, "{}(", function)?;
+
+                for (i, arg) in arguments.iter().enumerate() {
+                    write!(f, "{}", arg)?;
+                    if i < arguments.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, ")")
             }
         }
     }

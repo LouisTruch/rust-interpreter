@@ -172,6 +172,7 @@ impl Parser {
                 | Token::NotEq
                 | Token::LessThan
                 | Token::GreaterThan => self.parse_expr_infix(&left)?,
+                Token::LParen => self.parse_expr_call(&left)?,
                 _ => return Ok(left),
             };
         }
@@ -216,6 +217,37 @@ impl Parser {
             operator,
             right: Box::new(right),
         })
+    }
+
+    fn parse_expr_call(&mut self, left: &Expression) -> Result<Expression, ParserError> {
+        let arguments = self.parse_call_arguments()?;
+
+        Ok(Expression::FunctionCall {
+            function: Box::new(left.clone()),
+            arguments,
+        })
+    }
+
+    fn parse_call_arguments(&mut self) -> Result<Vec<Expression>, ParserError> {
+        let mut arguments: Vec<Expression> = vec![];
+
+        if self.peek_token_is(&Token::RParen) {
+            self.next_token();
+            return Ok(arguments);
+        }
+
+        self.next_token();
+        arguments.push(self.parse_expression(Precedence::Lowest)?);
+
+        while self.peek_token_is(&Token::Comma) {
+            self.next_token();
+            self.next_token();
+            arguments.push(self.parse_expression(Precedence::Lowest)?);
+        }
+
+        let _ = self.expect_peek(Token::RParen)?;
+
+        return Ok(arguments);
     }
 
     fn parse_expr_boolean(&mut self) -> Expression {
@@ -348,6 +380,7 @@ impl From<&Token> for Precedence {
             Token::LessThan | Token::GreaterThan => Precedence::LessGreater,
             Token::Plus | Token::Minus => Precedence::Sum,
             Token::Slash | Token::Asterisk => Precedence::Product,
+            Token::LParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }
