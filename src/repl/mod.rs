@@ -90,10 +90,9 @@ impl Repl {
             return;
         }
 
-        if let Ok(object) = program.eval() {
-            println!("{}", object);
-        } else {
-            eprintln!("Error evaluating program");
+        match program.eval() {
+            Ok(object) => println!("{}", object),
+            Err(e) => eprintln!("{:?}", e),
         }
     }
 }
