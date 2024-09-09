@@ -80,7 +80,15 @@ impl Repl {
     fn eval_input(&self, input: String) {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
-        let program = parser.parse_program().expect("parse_program() failed");
+        let Ok(program) = parser.parse_program() else {
+            eprintln!("Error parsing program");
+            return;
+        };
+
+        if parser.errors.len() > 0 {
+            eprintln!("Error parsing program");
+            return;
+        }
 
         if let Ok(object) = program.eval() {
             println!("{}", object);
