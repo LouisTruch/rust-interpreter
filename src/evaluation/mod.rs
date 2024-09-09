@@ -3,7 +3,7 @@ mod tests;
 
 pub mod environment;
 
-use std::{borrow::BorrowMut, cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use environment::Environment;
 
@@ -75,11 +75,9 @@ impl Eval for Statement {
                 Ok(result?)
             }
             Statement::Return(expression) => {
-                expression
-                    .eval(environment.clone())
-                    .map(|obj| Object::ReturnValue {
-                        value: Box::new(obj),
-                    })
+                expression.eval(environment).map(|obj| Object::ReturnValue {
+                    value: Box::new(obj),
+                })
             }
             Statement::Let { name, value } => {
                 let result = value.eval(environment.clone());
@@ -87,10 +85,9 @@ impl Eval for Statement {
                     return Ok(result?);
                 }
 
-                environment.set(name, result?);
+                let obj = environment.set(name, result?);
 
-                Ok(Object::Null)
-                // let mut result = Ok(Object:)
+                Ok(obj)
             }
         }
     }

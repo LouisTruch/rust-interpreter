@@ -1,6 +1,7 @@
 use crate::object::Object;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+#[derive(Debug)]
 pub struct Environment {
     store: Rc<RefCell<HashMap<String, Object>>>,
 }

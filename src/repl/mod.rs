@@ -1,17 +1,20 @@
 use crate::{evaluation::Eval, lexer::Lexer, parser::Parser, token::Token, Environment};
 use std::{
     io::{self, Write},
+    rc::Rc,
     str::FromStr,
 };
 
 #[derive(Default)]
 pub struct Repl {
     mode: ReplMode,
+    environment: Option<Rc<Environment>>,
 }
 
 impl Repl {
     pub fn start(&mut self) {
-        self.print_current_mode();
+        self.swap_mode(self.mode.clone());
+
         loop {
             print!(">> ");
             io::stdout().flush().expect("Failed to flush stdout");
@@ -45,7 +48,12 @@ impl Repl {
     }
 
     fn swap_mode(&mut self, mode: ReplMode) {
-        self.mode = mode;
+        self.mode = mode.clone();
+        if mode == ReplMode::Eval {
+            self.environment = Some(Environment::new_rc());
+        } else {
+            self.environment = None;
+        }
         self.print_current_mode();
     }
 
@@ -90,16 +98,14 @@ impl Repl {
             return;
         }
 
-        let env = Environment::new_rc();
-
-        match program.eval(env) {
+        match program.eval(self.environment.clone().unwrap()) {
             Ok(object) => println!("{}", object),
             Err(e) => eprintln!("{:?}", e),
         }
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default, PartialEq)]
 pub(crate) enum ReplMode {
     Lexing,
     Parsing,
