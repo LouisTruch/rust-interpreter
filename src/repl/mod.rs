@@ -61,6 +61,9 @@ impl Repl {
 
     fn parse_input(&self, input: String) {
         let mut parser = Parser::new(Lexer::new(input));
+
+        println!("Errors {:?}", parser.errors);
+
         let program = parser.parse_program();
         let program = match program {
             Ok(program) => program,
