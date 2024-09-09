@@ -12,6 +12,7 @@ mod object;
 
 #[allow(dead_code)]
 mod evaluation;
+pub use evaluation::environment::Environment;
 
 mod repl;
 pub use repl::Repl;

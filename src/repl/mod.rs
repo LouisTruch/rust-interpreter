@@ -1,4 +1,4 @@
-use crate::{evaluation::Eval, lexer::Lexer, parser::Parser, token::Token};
+use crate::{evaluation::Eval, lexer::Lexer, parser::Parser, token::Token, Environment};
 use std::{
     io::{self, Write},
     str::FromStr,
@@ -90,7 +90,9 @@ impl Repl {
             return;
         }
 
-        match program.eval() {
+        let env = Environment::new_rc();
+
+        match program.eval(env) {
             Ok(object) => println!("{}", object),
             Err(e) => eprintln!("{:?}", e),
         }

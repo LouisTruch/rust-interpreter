@@ -32,8 +32,9 @@ fn test_eval(input: String) -> Result<Object, EvalError> {
     let lexer = Lexer::new(input);
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program().expect("parse_program() failed");
+    let env = Environment::new_rc();
 
-    return program.eval();
+    program.eval(env)
 }
 
 fn test_integer_object(obj: Object, expected: i64) {
@@ -208,10 +209,10 @@ fn error_handling() {
                 right: false,
             },
         ),
-        // (
-        //     "foobar",
-        //     EvalError::IdentifierNotFound("foobar".to_string()),
-        // ),
+        (
+            "foobar",
+            EvalError::IdentifierNotFound("foobar".to_string()),
+        ),
     ];
 
     for (input, expected) in tests {
@@ -228,5 +229,20 @@ fn test_error_object(result: Result<Object, EvalError>, expected: EvalError) {
         Err(err) => {
             assert_eq!(err, expected);
         }
+    }
+}
+
+#[test]
+fn let_statement() {
+    let tests = vec![
+        ("let a = 5; a;", 5),
+        ("let a = 5 * 5; a;", 25),
+        ("let a = 5; let b = a; b;", 5),
+        ("let a = 5; let b = a; let c = a + b + 5; c;", 15),
+    ];
+
+    for (input, expected) in tests {
+        let evaluated = test_eval(input.to_string());
+        test_integer_object(evaluated.unwrap(), expected);
     }
 }

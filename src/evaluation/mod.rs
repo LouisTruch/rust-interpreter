@@ -1,6 +1,12 @@
 #[cfg(test)]
 mod tests;
 
+pub mod environment;
+
+use std::{borrow::BorrowMut, cell::RefCell, rc::Rc};
+
+use environment::Environment;
+
 use crate::{
     ast::{Expression, InfixOperator, PrefixOperator, Program, Statement},
     object::Object,
@@ -22,20 +28,21 @@ pub(crate) enum EvalError {
         operator: InfixOperator,
         right: bool,
     },
+    IdentifierNotFound(String),
     Custom(String),
     Unhandled,
 }
 
 pub(crate) trait Eval {
-    fn eval(self) -> Result<Object, EvalError>;
+    fn eval(self, environment: Rc<Environment>) -> Result<Object, EvalError>;
 }
 
 impl Eval for Program {
-    fn eval(self) -> Result<Object, EvalError> {
+    fn eval(self, environment: Rc<Environment>) -> Result<Object, EvalError> {
         let mut result = Ok(Object::Null);
 
         for statement in self.statements {
-            result = statement.eval();
+            result = statement.eval(environment.clone());
 
             match result.clone() {
                 Ok(Object::ReturnValue { value }) => return Ok(*value),
@@ -49,14 +56,14 @@ impl Eval for Program {
 }
 
 impl Eval for Statement {
-    fn eval(self) -> Result<Object, EvalError> {
+    fn eval(self, environment: Rc<Environment>) -> Result<Object, EvalError> {
         match self {
-            Statement::Expression(expression) => expression.eval(),
+            Statement::Expression(expression) => expression.eval(environment.clone()),
             Statement::Block(statements) => {
                 let mut result = Ok(Object::Null);
 
                 for statement in statements {
-                    result = statement.eval();
+                    result = statement.eval(environment.clone());
 
                     match result.clone() {
                         Ok(Object::ReturnValue { value: _ }) => return Ok(result?),
@@ -67,21 +74,35 @@ impl Eval for Statement {
 
                 Ok(result?)
             }
-            Statement::Return(expression) => expression.eval().map(|obj| Object::ReturnValue {
-                value: Box::new(obj),
-            }),
-            _ => Err(EvalError::Unhandled),
+            Statement::Return(expression) => {
+                expression
+                    .eval(environment.clone())
+                    .map(|obj| Object::ReturnValue {
+                        value: Box::new(obj),
+                    })
+            }
+            Statement::Let { name, value } => {
+                let result = value.eval(environment.clone());
+                if result.is_err() {
+                    return Ok(result?);
+                }
+
+                environment.set(name, result?);
+
+                Ok(Object::Null)
+                // let mut result = Ok(Object:)
+            }
         }
     }
 }
 
 impl Eval for Expression {
-    fn eval(self) -> Result<Object, EvalError> {
+    fn eval(self, environment: Rc<Environment>) -> Result<Object, EvalError> {
         match self {
             Expression::Int(i) => Ok(Object::Integer(i)),
             Expression::Bool(b) => Ok(Object::Bool(b)),
             Expression::Prefix { operator, right } => {
-                let right = right.eval()?;
+                let right = right.eval(environment)?;
                 eval_expr_prefix(operator, right)
             }
             Expression::Infix {
@@ -89,8 +110,8 @@ impl Eval for Expression {
                 operator,
                 right,
             } => {
-                let left = left.eval()?;
-                let right = right.eval()?;
+                let left = left.eval(environment.clone())?;
+                let right = right.eval(environment.clone())?;
                 eval_expr_infix(operator, left, right)
             }
             Expression::If {
@@ -98,16 +119,25 @@ impl Eval for Expression {
                 consequence,
                 alternative,
             } => {
-                let condition = condition.eval()?;
+                let condition = condition.eval(environment.clone())?;
 
                 if is_true(condition) {
-                    Statement::Block(consequence).eval()
+                    Statement::Block(consequence).eval(environment.clone())
                 } else if alternative.is_some() {
                     // Safe because we of else if condition
-                    Statement::Block(alternative.unwrap()).eval()
+                    Statement::Block(alternative.unwrap()).eval(environment.clone())
                 } else {
                     Ok(Object::Null)
                 }
+            }
+            Expression::Identifier(str) => {
+                let val = environment.get(&str);
+
+                if val == Object::Null {
+                    return Err(EvalError::IdentifierNotFound(str.to_string()));
+                }
+
+                return Ok(val);
             }
             _ => Err(EvalError::Unhandled),
         }
