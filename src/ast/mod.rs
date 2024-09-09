@@ -1,6 +1,5 @@
-use std::str::FromStr;
-
 use crate::token::Token;
+use std::str::FromStr;
 
 // Program is the root node of the AST
 #[derive(Default)]
@@ -18,6 +17,7 @@ impl std::fmt::Display for Program {
     }
 }
 
+// Each statement is a node in the AST
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let { name: String, value: Expression },
@@ -244,7 +244,7 @@ mod tests {
                     name: "myVar".to_string(),
                     value: Expression::Identifier("anotherVar".to_string()),
                 },
-                Statement::Return(Expression::None),
+                Statement::Return(Expression::Identifier("A".to_string())),
             ],
         };
 

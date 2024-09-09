@@ -1,4 +1,4 @@
-use crate::{lexer::Lexer, parser::Parser, token::Token};
+use crate::{evaluation::Eval, lexer::Lexer, parser::Parser, token::Token};
 use std::{
     io::{self, Write},
     str::FromStr,
@@ -34,6 +34,7 @@ impl Repl {
             match self.mode {
                 ReplMode::Lexing => self.lex_input(input),
                 ReplMode::Parsing => self.parse_input(input),
+                ReplMode::Eval => self.eval_input(input),
             }
         }
     }
@@ -75,13 +76,26 @@ impl Repl {
 
         println!("Program: {}", program);
     }
+
+    fn eval_input(&self, input: String) {
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program().expect("parse_program() failed");
+
+        if let Ok(object) = program.eval() {
+            println!("{}", object);
+        } else {
+            eprintln!("Error evaluating program");
+        }
+    }
 }
 
 #[derive(Default)]
 pub(crate) enum ReplMode {
     Lexing,
-    #[default]
     Parsing,
+    #[default]
+    Eval,
 }
 
 impl std::fmt::Display for ReplMode {
@@ -92,6 +106,7 @@ impl std::fmt::Display for ReplMode {
             match self {
                 ReplMode::Lexing => "Lexing",
                 ReplMode::Parsing => "Parsing",
+                ReplMode::Eval => "Eval",
             }
         )
     }
@@ -104,6 +119,7 @@ impl FromStr for ReplMode {
         match s.trim().to_lowercase().as_ref() {
             "lexing" => Ok(Self::Lexing),
             "parsing" => Ok(Self::Parsing),
+            "eval" => Ok(Self::Eval),
             _ => Err(()),
         }
     }

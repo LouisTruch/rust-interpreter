@@ -7,6 +7,12 @@ mod lexer;
 #[allow(dead_code)]
 mod parser;
 
+#[allow(dead_code)]
+mod object;
+
+#[allow(dead_code)]
+mod evaluation;
+
 mod repl;
 pub use repl::Repl;
 
