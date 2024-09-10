@@ -1,3 +1,8 @@
+use crate::{
+    ast::{Expression, Statement},
+    Environment,
+};
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) enum Object {
     #[default]
@@ -6,6 +11,12 @@ pub(crate) enum Object {
     Bool(bool),
     ReturnValue {
         value: Box<Object>,
+    },
+    Function {
+        // Should be Expression::Identifiers
+        parameters: Vec<Expression>,
+        body: Vec<Statement>,
+        env: Environment,
     },
 }
 
@@ -16,6 +27,28 @@ impl std::fmt::Display for Object {
             Object::Integer(i) => write!(f, "{}", i),
             Object::Bool(b) => write!(f, "{}", b),
             Object::ReturnValue { value } => write!(f, "{}", value),
+            Object::Function {
+                parameters, body, ..
+            } => {
+                write!(
+                    f,
+                    "fn({}) ",
+                    parameters
+                        .iter()
+                        .map(|expr| expr.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                )?;
+
+                write!(
+                    f,
+                    "{{\n {}\n}}",
+                    body.iter()
+                        .map(|stmt| stmt.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n ")
+                )
+            }
         }
     }
 }
@@ -26,7 +59,8 @@ impl Object {
             Object::Null => "NULL".to_string(),
             Object::Integer(_) => "INTEGER".to_string(),
             Object::Bool(_) => "BOOLEAN".to_string(),
-            Object::ReturnValue { value: _ } => "RETURN_VALUE".to_string(),
+            Object::ReturnValue { .. } => "RETURN_VALUE".to_string(),
+            Object::Function { .. } => "FUNCTION".to_string(),
         }
     }
 }

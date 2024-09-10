@@ -246,3 +246,52 @@ fn let_statement() {
         test_integer_object(evaluated.unwrap(), expected);
     }
 }
+
+#[test]
+fn function_obj() {
+    let input = "fn(x) { x + 2; }";
+    let evaluated = test_eval(input.to_string());
+    match evaluated.expect("Error evaluating function") {
+        Object::Function {
+            parameters, body, ..
+        } => {
+            assert_eq!(parameters.len(), 1);
+            assert_eq!(parameters[0].to_string(), "x");
+            assert_eq!(body[0].to_string(), "(x + 2)");
+        }
+        _ => {
+            assert!(false, "Object is not Function");
+        }
+    }
+}
+
+#[test]
+fn function_call() {
+    let tests = vec![
+        ("let identity = fn(x) { x; }; identity(5);", 5),
+        ("let identity = fn(x) { return x; }; identity(5);", 5),
+        ("let double = fn(x) { x * 2; }; double(5);", 10),
+        ("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
+        ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20),
+        ("fn(x) { x; }(5)", 5),
+    ];
+
+    for (input, expected) in tests {
+        let evaluated = test_eval(input.to_string());
+        test_integer_object(evaluated.unwrap(), expected);
+    }
+}
+
+#[test]
+fn closure() {
+    let input = r#"
+    let newAdder = fn(x) {
+        fn(y) { x + y };
+    };
+    let addTwo = newAdder(2);
+    addTwo(3);
+    "#;
+
+    let evaluated = test_eval(input.to_string());
+    test_integer_object(evaluated.unwrap(), 5);
+}

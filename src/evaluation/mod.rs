@@ -29,6 +29,14 @@ pub(crate) enum EvalError {
         right: bool,
     },
     IdentifierNotFound(String),
+    MismatchedObject {
+        expected: String,
+        got: Object,
+    },
+    InvalidNumberArguments {
+        expected: u64,
+        got: u64,
+    },
     Custom(String),
     Unhandled,
 }
@@ -121,7 +129,6 @@ impl Eval for Expression {
                 if is_true(condition) {
                     Statement::Block(consequence).eval(environment.clone())
                 } else if alternative.is_some() {
-                    // Safe because we of else if condition
                     Statement::Block(alternative.unwrap()).eval(environment.clone())
                 } else {
                     Ok(Object::Null)
@@ -135,6 +142,24 @@ impl Eval for Expression {
                 }
 
                 return Ok(val);
+            }
+            Expression::Function { parameters, body } => Ok(Object::Function {
+                parameters,
+                body,
+                env: (*environment).clone(),
+            }),
+            Expression::FunctionCall {
+                function,
+                arguments,
+            } => {
+                let obj_fn = function.eval(environment.clone())?;
+
+                let arguments: Vec<Object> = arguments
+                    .into_iter()
+                    .map(|arg| arg.eval(environment.clone()))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                apply_function(obj_fn, arguments)
             }
             _ => Err(EvalError::Unhandled),
         }
@@ -226,4 +251,51 @@ fn is_true(condition: Object) -> bool {
         Object::Bool(b) => b,
         _ => true,
     }
+}
+
+fn apply_function(obj_fn: Object, args: Vec<Object>) -> Result<Object, EvalError> {
+    let Object::Function {
+        body, parameters, ..
+    } = obj_fn.clone()
+    else {
+        return Err(EvalError::MismatchedObject {
+            expected: "Object::Function{ }".to_string(),
+            got: obj_fn,
+        });
+    };
+
+    if parameters.len() != args.len() {
+        return Err(EvalError::InvalidNumberArguments {
+            expected: parameters.len() as u64,
+            got: args.len() as u64,
+        });
+    }
+
+    let extended_env = extend_function_env(obj_fn, args)?;
+
+    let obj = Statement::Block(body).eval(extended_env)?;
+    Ok(match obj {
+        Object::ReturnValue { value } => *value,
+        _ => obj,
+    })
+}
+
+fn extend_function_env(obj_fn: Object, args: Vec<Object>) -> Result<Rc<Environment>, EvalError> {
+    let Object::Function {
+        parameters, env, ..
+    } = obj_fn
+    else {
+        return Err(EvalError::MismatchedObject {
+            expected: "Object::Function{ }".to_string(),
+            got: obj_fn,
+        });
+    };
+
+    let env = Environment::with_outer(Rc::new(env));
+
+    for (param, arg) in parameters.into_iter().zip(args) {
+        env.set(param, arg);
+    }
+
+    Ok(env)
 }
